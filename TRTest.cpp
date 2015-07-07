@@ -16,13 +16,14 @@
 #include <string>
 #include <cctype>
 #include <vector>
+//#include "CkCsv.h"
 using namespace std;
 
 /* Function Prototypes */
 
 TRLineXSect* getXSect(string type, double f);
-vector <TRLine> makeTRLineVector(TRLine sum);
-vector <int> makeLengthsVector(double l);
+vector <TRLine> makeTRLineVector(int N, TRLine sum);
+vector <int> makeLengthsVector(int N, double l);
 
 int main() {
 
@@ -31,11 +32,9 @@ int main() {
 
 
 	/*Only runs this code if entire TRLine is being calculated*/
-	double f, l, y;
+	double f, l, y, R0;
 	int N;
 	complex <double> zLoad;
-	vector <TRLine> TRLines;
-	vector <int> lengths;
 
 	cout << "Frequency (Hz):"<< endl;
 	cin >> f;
@@ -61,32 +60,77 @@ int main() {
 	TRLine sum = TRLine (zLoad, trXSect, l);
 
 	cout << "Inner Impedance (ohms), Reflection Coefficient = " << sum.getZin(f)
-																							<< ", " << sum.getGamma() << endl;
-
-	/*Creates 2 vectors containing TRLine segments and length of segments respectively*/
-	TRLines = makeTRLineVector(N, sum);
-	lengths = makeLengthsVector(N, l);
+																												<< ", " << sum.getGamma() << endl;
 
 	cout << "Number of TRLine Segments in full line:" << endl;
 	cin >> N;
 	cout << "length of pinched region:" << endl;
 	cin >> y;
+	cout << "Radius of pinched region (m):" << endl;
+	cin >> R0;
 
+	/*Creates 2 vectors containing TRLine segments and length of segments respectively*/
+	vector <TRLine> TRLines = makeTRLineVector(N, sum);
+	vector <int> lengths = makeLengthsVector(N, l);
 
-	TRLinesTotal total(TRLines, lengths, zLoad, y);
+	TRLinesTotal total(TRLines, lengths, zLoad);
 
-	cout << "Zin (ohms), Reflection Coefficient = " << total.getZinTotal(f)
-													<< ", " << total.getGammaTotal(f) << endl;
+	cout<< "Before pinch: " << endl;
+	cout << "Zin (ohms), Reflection Coefficient = " << total.getZinTotal(f) << endl;
+	cout										<< ", " << total.getGammaTotal(f) << endl;
 
+	//sorts through all possible finger positions
 	for(int i = 0; i < N - y; i++){
-		vector <TRLine> pinchedSeg = getSegments(i, i + y);
+		double x = i + (y/2);
+		vector <TRLine> pinchedSeg = total.getSegments(i, i + y);
+
+		//sorts through each pinched segment and changes their outer radius
 		for (int j = 0; j < pinchedSeg.size(); j++){
-			TRLine desiredSeg = pinchedSeg.at(i);
-			CoaxXSection desiredXSect = desiredSeg.getXSections();
-			desiredXSect.setOuterRadius(R0);
-			//NOW WE HAVE TO UPDATE THE VECTOR OF TRLINES TO SHOW THIS PINCHED REGION
+
+			//ARE THE RADII BEING RESET to normal size FOR EACH FINGER POSITION???????????????????????
+			//???????????????????
+			//?????????????????
+			// how to you output a CSV file to make the presentation of these outcomes neater?
+			TRLine desiredSeg = pinchedSeg.at(j);
+			TRLineXSect* desiredXSect = desiredSeg.getXSections();
+			desiredXSect = (CoaxXSection *) desiredXSect;
+			desiredXSect -> setOuterRadius(R0);
+
+			//return segments to vector of complete XSections and recalculate Zin and Gamma
+			vector <TRLine> updated = TRLines;
+			updated.at(i + j) = pinchedSeg.at(j);
+
 		}
+		vector <int> pinchedLengths;
+		for (int k = 0; k < y; k++){
+			pinchedLengths.push_back(lengths.at(i + k));
+		}
+
+		//prints out Zin and Gamma for each finger segment which consists of multiple TRLine segments
+		TRLinesTotal fingerPinch(pinchedSeg, pinchedLengths, zLoad);
+		cout << "Zin (ohms), Reflection Coefficient = " << fingerPinch.getZinTotal(f)
+																					<< ", " << fingerPinch.getGammaTotal(f) << endl;
+		cout << "center of finger at " << x << "meters from end" << endl;
+
+		//CSV file headers and opening of file
+//		ofstream Pinch_Data ("TRLine_Pinch_Data");
+//		Pinch_Data << "Finger Location, Internal Impedance, Reflection Coefficient" << "/n";
+//		Pinch_Data << x << ";" << fingerPinch.getZinTotal << ";" << fingerPinch.getGammaTotal(f) << "/n";
+//		Pinch_Data.close();
+//		if (!Pinch_Data) {
+//			cout << "Error opening file" << endl;
+//			return -1;
+//		}
+
+
+		//		TRLine seg = TRLine(zLoad, desiredXSect, lengths.at(i));
+		//		cout << i << "Inner Impedance (ohms), Reflection Coefficient = " << seg.getZin(f)
+		//													<< ", " << seg.getGamma() << endl;
 	}
+	//prints out new total Zin and reflection coeff after TRLine is pinched
+	TRLinesTotal newTotal(TRLines, lengths, zLoad);
+	cout << "Zin (ohms), Reflection Coefficient = " << newTotal.getZinTotal(f)
+																			<< ", " << newTotal.getGammaTotal(f) << endl;
 	return 20;
 }
 
@@ -96,7 +140,7 @@ int main() {
  * (includes Z0 and Beta).
  */
 TRLineXSect* getXSect(string type, double f){
-	double r, R, R0, eps, w, h, t, b;
+	double r, R, eps, w, h, t, b;
 	TRLineXSect *trXSect = NULL;
 
 	/*If calculating microstrip Xsect, takes in width, height, strip thickness, and permittivity*/
@@ -129,17 +173,15 @@ TRLineXSect* getXSect(string type, double f){
 
 		/*If calculating coax Xsect, takes in the inner & outer radius and permittivity*/
 	} else if (type == "3") {
-		/* for coax*/
+
 		cout << "Small Radius (m):"<< endl;
 		cin >> r;
 		cout << "Large Radius (m):"<< endl;
 		cin >> R;
-		cout << "Radius of pinched region (m):" << endl;
-		cin >> R0;
 		cout << "Permittivity:"<< endl;
 		cin >> eps;
 
-		return trXSect = new CoaxXSection (r, R, R0, eps);
+		return trXSect = new CoaxXSection (r, R, eps);
 	}
 }
 
@@ -149,7 +191,7 @@ TRLineXSect* getXSect(string type, double f){
  */
 vector <TRLine> makeTRLineVector(int N, TRLine sum){
 	vector <TRLine> TRLines;
-	for (int i; i < N; i++){
+	for (int i = 0; i < N; i++){
 		TRLines.push_back(sum);
 	}
 	return TRLines;
@@ -158,7 +200,7 @@ vector <TRLine> makeTRLineVector(int N, TRLine sum){
 /*Adds the lengths corresponding to the TRLine segments in TRLines*/
 vector <int> makeLengthsVector(int N, double l){
 	vector <int> lengths;
-	for (int i; i < N; i++){
+	for (int i = 0; i < N; i++){
 		lengths.push_back(l);
 	}
 	return lengths;

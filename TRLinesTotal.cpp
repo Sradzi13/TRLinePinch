@@ -19,11 +19,13 @@
 using namespace std;
 
 TRLinesTotal::TRLinesTotal(vector <TRLine> TRLines, vector <int> lengths,
-		complex <double>  zLoad, double y) {
+		complex <double>  zLoad) {
+
+	//vector <TRLine> *holder = &TRLines;
+	//this -> TRLines = *holder;
 	this -> TRLines = TRLines;
 	this -> lengths = lengths;
 	this -> zLoad = zLoad;
-	this -> y = y;
 }
 
 TRLinesTotal::~TRLinesTotal() {
@@ -63,8 +65,9 @@ complex <double> TRLinesTotal::getGammaTotal(double f){
 
 vector <TRLine> TRLinesTotal::getSegments(int start, int end){
 	vector <TRLine> pinched;
-	for(int i = start; i <= end; i++){
-		pinched.push_back(TRLines(i));
+	for(int i = start; i < end; i++){
+		TRLine temp = TRLines.at(i);
+		pinched.push_back(temp);
 	}
 	return pinched;
 }

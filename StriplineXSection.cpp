@@ -58,7 +58,9 @@ double StriplineXSection::getBeta(double f){
 	return ((2.0 * M_PI) * f * sqrt(mu0 * eps * eps0));
 }
 
-
+void StriplineXSection::setOuterRadius(double R0){
+	//R = R0;
+}
 
 
 

@@ -70,7 +70,7 @@ public:
 
 private:
 
-	double r, R, R0, eps;
+	double r, R, eps;
 };
 
 #endif /* COAXXSECTION_H_ */

@@ -27,7 +27,7 @@ public:
 	 */
 
 	TRLinesTotal(vector <TRLine> TRLines, vector <int> lengths,
-			complex <double> zLoad, double y);
+			complex <double> zLoad);
 
 	/*
 	 * Destructor: ~TRLinesTotal
@@ -73,7 +73,7 @@ private:
 	vector <TRLine> TRLines;
 	vector <int> lengths;
 	complex <double>  zLoad;
-	double y;
+
 };
 
 #endif /* TRLINESTOTAL_H_ */

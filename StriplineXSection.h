@@ -68,7 +68,8 @@ public:
 	 * case: frequency and permittivity).
 	 */
 	double getBeta(double f);
-	int main();
+
+	void setOuterRadius(double R0);
 
 private:
 
